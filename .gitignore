@@ -3,3 +3,7 @@
 !*/
 !*.h
 !*.cpp
+!/.gitignore
+!/CMakeLists.txt
+!/cmake/*.cmake
+!/cmake/*.md
