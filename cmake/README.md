@@ -1,47 +1,55 @@
-# Civ V reference in CLion
+# Standalone CMake build
 
-Open the root `CMakeLists.txt` in CLion. The three `*_reference` targets provide
-source lists, include paths, and compile metadata for the base game and both
-expansions. Select a target to browse its version of the game. Use a Windows
-MSVC toolchain for the closest header parsing; these sources use Windows headers
-and legacy Microsoft C++ extensions. The default build has no compilation steps.
-The Rust application continues to build with Cargo.
+This repository builds 32-bit reference DLLs with CMake and Ninja. It does not
+depend on open_civ, a decompilation workspace, Python, or original SDK projects.
+Missing support headers and prebuilt libraries are fetched automatically from
+LoneGazebo/Community-Patch-DLL at commit
+`aefacbf1b24a27aa42dc50b4283420a999f7fded`. Git and network access are needed
+on the first configuration; subsequent configurations reuse the pinned checkout.
 
-## Building a game DLL
+## Prerequisites
 
-The upstream repository supplies no Visual Studio projects or `.lib` files.
-The `*_reference` object targets are for IDE metadata, not supported standalone
-builds. Building a usable game DLL requires the original Civilization V SDK
-source tree with its `.vcxproj` files, libraries, Windows SDK, and compatible
-32-bit Microsoft toolset. A modern CLion compiler alone does not supply these.
+- Windows, CMake 3.20 or newer, Ninja, and Git.
+- Microsoft Visual C++ 2008 SP1 (VC9), x86, with its Windows SDK. Modern MSVC
+  uses a different C++ ABI from the prebuilt SDK libraries.
 
-Set these CMake options in your CLion profile (use your actual paths):
+The portable Microsoft Visual C++ Compiler for Python 2.7 distribution contains
+the required `VC` and `WinSDK` directories. Set `CIV5_VC9_ROOT` to the directory
+containing those two folders (usually `Microsoft/Visual C++ for Python/9.0`
+inside the extracted distribution). The compiler is an external prerequisite;
+this repository does not download or install it.
 
-```text
--DCIV5_SDK_DIR="C:/path/to/CvGameCoreSource"
--DCIV5_MSBUILD="C:/path/to/MSBuild.exe"
--DCIV5_SDK_CONFIGURATION=Release
+```powershell
+git clone https://github.com/Buzzec/Civ5-DLL.git
+cd Civ5-DLL
+cmake -S . -B build -G Ninja -DCIV5_VC9_ROOT="C:/toolchains/VC9"
+cmake --build build --target CvGameCoreDLL_reference --parallel 8
 ```
 
-The SDK directory must directly contain `CvGameCoreDLL`,
-`CvGameCoreDLL_Expansion1`, and `CvGameCoreDLL_Expansion2` with their original
-projects and sibling dependencies. Select `CvGameCoreDLL_Expansion2_dll` (or
-the corresponding base/Expansion1 target) and build it in CLion. CMake copies
-the SDK into the build directory, overlays the submodule sources, and invokes
-the original project with `Platform=Win32`. Outputs are in that staged SDK's
-original project output locations beneath `<build>/sdk/<variant>`.
+Until merged, clone with `--branch codex/cmake-clion`.
 
-This preserves the SDK's ABI, precompiled header, resource, and linker settings.
-Native compilation requires a compatible SDK and has not been verified here.
-The source overlays must match the installed SDK version; MSBuild reports
-missing dependencies or incompatible project settings.
+Outputs are `build/bin/CvGameCoreDLLReference.dll` and its matching full PDB.
+The base game is the default build. Expansion targets are
+`CvGameCoreDLL_Expansion1_reference` and `CvGameCoreDLL_Expansion2_reference`.
+Each target creates its own PCH and outputs. Sources remain in the repository;
+support headers are merged in the build directory without overwriting snapshot
+headers. The orphaned `CvHallOfFameInfo.cpp` and empty placeholders are omitted.
 
-## CLion compiler detection
+For an offline build, supply `-DCIV5_DEPENDENCIES_DIR="C:/path/to/Community-Patch-DLL"`
+using the pinned revision above with the support folders and `.lib` files present.
 
-The reference targets deliberately do not force-include the game's PCH.
-CLion also uses target flags when probing compiler macros on an empty file;
-forcing the PCH into that probe can produce a large preprocessing dump and
-fail project loading with modern MSVC. Game source files include their own PCH.
-The reference targets suppress MSVC's legacy `stdext::hash_map` deprecation
-error for browsing. Native SDK builds retain their original compiler settings.
+## CLion
 
+Open this repository's root CMakeLists.txt. Use a Windows toolchain and the Ninja
+generator. In Settings > Build, Execution, Deployment > CMake, add
+`-DCIV5_VC9_ROOT="C:/toolchains/VC9"` to CMake options. Reset the CMake cache
+after switching from a modern compiler. CMake selects VC9 and supplies its
+header and library paths; no Visual Studio environment shell is necessary.
+Select a `*_reference` target and use Build. A DLL is not a standalone runnable
+application, so Run requires a separate host application.
+
+Both Debug and Release profiles use the release CRT and iterator ABI expected
+by the support libraries, with optimized code and debug symbols. The support
+libraries lack their original PDBs, so LNK4099 warnings are expected; game-core
+source symbols are generated. These are reference builds, not game-tested
+replacement DLLs.

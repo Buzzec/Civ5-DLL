@@ -7,3 +7,7 @@
 !/CMakeLists.txt
 !/cmake/*.cmake
 !/cmake/*.md
+/.idea/
+/build*/
+/cmake-build-*/
+/CMakeUserPresets.json
