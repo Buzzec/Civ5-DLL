@@ -36,3 +36,12 @@ Native compilation requires a compatible SDK and has not been verified here.
 The source overlays must match the installed SDK version; MSBuild reports
 missing dependencies or incompatible project settings.
 
+## CLion compiler detection
+
+The reference targets deliberately do not force-include the game's PCH.
+CLion also uses target flags when probing compiler macros on an empty file;
+forcing the PCH into that probe can produce a large preprocessing dump and
+fail project loading with modern MSVC. Game source files include their own PCH.
+The reference targets suppress MSVC's legacy `stdext::hash_map` deprecation
+error for browsing. Native SDK builds retain their original compiler settings.
+

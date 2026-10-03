@@ -37,7 +37,11 @@ foreach(variant CvGameCoreDLL CvGameCoreDLL_Expansion1 CvGameCoreDLL_Expansion2)
         "${CIV5_SOURCE_DIR}/${variant}" ${shared_includes})
     target_compile_definitions(${variant}_reference PRIVATE WIN32 _WINDOWS FINAL_RELEASE)
     if(MSVC)
-        target_compile_options(${variant}_reference PRIVATE /FI CvGameCoreDLLPCH.h)
+        # CLion probes compiler macros using these flags on an empty file.
+        # A forced game PCH makes that probe preprocess the entire Windows SDK
+        # and legacy game headers. Game sources already include the PCH.
+        target_compile_definitions(${variant}_reference PRIVATE
+            _SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS)
     endif()
 
     if(CIV5_SDK_DIR)
